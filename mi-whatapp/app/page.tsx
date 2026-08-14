@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import Link from 'next/link';
 
 type Contacto = { id: string; telefono: string; nombre: string | null; ultimaRespuestaClienteEn?: string | null };
@@ -18,14 +19,40 @@ export default function ChatPage() {
   const [plantillas, setPlantillas] = useState<Plantilla[]>([]);
   const [plantillaSeleccionada, setPlantillaSeleccionada] = useState('');
   const [variablesPlantilla, setVariablesPlantilla] = useState('');
+  const [mensajesNuevos, setMensajesNuevos] = useState<Set<string>>(new Set());
+  const chatActivoRef = React.useRef<Contacto | null>(null);
 
   // Cargar lista de contactos al iniciar
   const fetchContactos = async () => {
     try {
       const res = await fetch('/api/chats');
       if (!res.ok) return;
-      const data = await res.json();
+      const data: Contacto[] = await res.json();
       setContactos(data);
+
+      // ✅ Sincronizar chatActivo con los datos frescos para que la ventana 24h se actualice en tiempo real
+      const activoActual = chatActivoRef.current;
+      if (activoActual && !activoActual.id.startsWith('temp-')) {
+        const actualizado = data.find(c => c.id === activoActual.id);
+        if (actualizado) {
+          // Detectar si llegaron mensajes nuevos del cliente
+          const anteriorRespuesta = activoActual.ultimaRespuestaClienteEn;
+          const nuevaRespuesta = actualizado.ultimaRespuestaClienteEn;
+          if (nuevaRespuesta && nuevaRespuesta !== anteriorRespuesta) {
+            // El cliente respondió — actualizar chatActivo para desbloquear input
+            setChatActivo(actualizado);
+            chatActivoRef.current = actualizado;
+          }
+        }
+      }
+
+      // Marcar contactos con mensajes nuevos (los que respondieron recientemente)
+      const hace5min = new Date(Date.now() - 5 * 60 * 1000);
+      const nuevos = new Set(data
+        .filter(c => c.ultimaRespuestaClienteEn && new Date(c.ultimaRespuestaClienteEn) > hace5min)
+        .map(c => c.id)
+      );
+      setMensajesNuevos(nuevos);
     } catch (e) {
       // Ignorar errores de red/JSON durante recargas del servidor
     }
@@ -66,6 +93,9 @@ export default function ChatPage() {
 
   const handleSeleccionarChat = (contacto: Contacto) => {
     setChatActivo(contacto);
+    chatActivoRef.current = contacto;
+    // Limpiar punto de notificación al abrir el chat
+    setMensajesNuevos(prev => { const s = new Set(prev); s.delete(contacto.id); return s; });
     if (!contacto.id.startsWith('temp-')) {
       fetchMensajes(contacto.id);
     } else {
@@ -116,6 +146,7 @@ export default function ChatPage() {
       // Usar el ID real devuelto por la API para cargar los mensajes
       if (data.contacto) {
         setChatActivo(data.contacto);
+        chatActivoRef.current = data.contacto;
         fetchContactos();
         fetchMensajes(data.contacto.id);
       }
@@ -274,6 +305,9 @@ export default function ChatPage() {
             >
               <h2 className="font-semibold">{contacto.nombre || contacto.telefono}</h2>
               <p className="text-sm text-gray-500">+{contacto.telefono}</p>
+              {mensajesNuevos.has(contacto.id) && chatActivo?.id !== contacto.id && (
+                <span className="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-full mt-1 animate-pulse" title="Mensaje nuevo"></span>
+              )}
             </div>
           ))}
         </div>
