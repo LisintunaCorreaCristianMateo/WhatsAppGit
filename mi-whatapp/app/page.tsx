@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import React from 'react';
 import Link from 'next/link';
+import { supabase } from '../lib/supabaseClient';
 
 type Contacto = { id: string; telefono: string; nombre: string | null; ultimaRespuestaClienteEn?: string | null };
 type Mensaje = { id: string; texto: string; origen: 'CLIENTE' | 'SISTEMA'; creadoEn: string };
@@ -94,12 +95,29 @@ export default function ChatPage() {
   useEffect(() => {
     fetchContactos();
     fetchPlantillas();
-    const interval = setInterval(() => {
-      fetchContactos();
-      if (chatActivo) fetchMensajes(chatActivo.id);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [chatActivo]);
+
+    // Reemplazar setInterval por Supabase Realtime
+    const channel = supabase.channel('realtime-mensajes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'Mensaje' },
+        (payload) => {
+          // Cuando llega un mensaje nuevo en la base de datos, refrescamos los datos
+          fetchContactos();
+          const activo = chatActivoRef.current;
+          // Si el mensaje es para el chat que estamos viendo, refrescamos sus mensajes
+          // payload.new contiene los datos de la fila insertada
+          if (activo && payload.new && payload.new.contactoId === activo.id) {
+            fetchMensajes(activo.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []); // Ya no depende de chatActivo porque usamos chatActivoRef por dentro
 
   const handleSeleccionarChat = (contacto: Contacto) => {
     setChatActivo(contacto);
