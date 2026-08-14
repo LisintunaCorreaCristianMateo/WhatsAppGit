@@ -21,6 +21,8 @@ export default function ChatPage() {
   const [variablesPlantilla, setVariablesPlantilla] = useState('');
   const [mensajesNuevos, setMensajesNuevos] = useState<Set<string>>(new Set());
   const chatActivoRef = React.useRef<Contacto | null>(null);
+  // Mapa de {contactoId -> ultimaRespuestaClienteEn} para detectar cambios
+  const respuestasAnteriores = React.useRef<Record<string, string | null>>({});
 
   // Cargar lista de contactos al iniciar
   const fetchContactos = async () => {
@@ -30,28 +32,36 @@ export default function ChatPage() {
       const data: Contacto[] = await res.json();
       setContactos(data);
 
-      // ✅ Sincronizar chatActivo con los datos frescos para que la ventana 24h se actualice en tiempo real
+      // ✅ Sincronizar chatActivo y detectar mensajes nuevos
       const activoActual = chatActivoRef.current;
-      if (activoActual && !activoActual.id.startsWith('temp-')) {
-        const actualizado = data.find(c => c.id === activoActual.id);
-        if (actualizado) {
-          // Detectar si llegaron mensajes nuevos del cliente
-          const anteriorRespuesta = activoActual.ultimaRespuestaClienteEn;
-          const nuevaRespuesta = actualizado.ultimaRespuestaClienteEn;
-          if (nuevaRespuesta && nuevaRespuesta !== anteriorRespuesta) {
-            // El cliente respondió — actualizar chatActivo para desbloquear input
+      const nuevos = new Set(mensajesNuevos);
+
+      data.forEach(actualizado => {
+        const id = actualizado.id;
+        const nuevaRespuesta = actualizado.ultimaRespuestaClienteEn;
+        const anteriorRespuesta = respuestasAnteriores.current[id];
+
+        // Inicializar el historial si es la primera vez que vemos este contacto
+        if (anteriorRespuesta === undefined) {
+          respuestasAnteriores.current[id] = nuevaRespuesta || null;
+          return;
+        }
+
+        // Si hay una respuesta nueva
+        if (nuevaRespuesta && nuevaRespuesta !== anteriorRespuesta) {
+          respuestasAnteriores.current[id] = nuevaRespuesta; // Actualizar historial
+          
+          if (activoActual?.id === id) {
+            // El cliente respondió en el chat activo — actualizar para desbloquear input
             setChatActivo(actualizado);
             chatActivoRef.current = actualizado;
+          } else {
+            // El cliente respondió en un chat inactivo — mostrar notificación
+            nuevos.add(id);
           }
         }
-      }
-
-      // Marcar contactos con mensajes nuevos (los que respondieron recientemente)
-      const hace5min = new Date(Date.now() - 5 * 60 * 1000);
-      const nuevos = new Set(data
-        .filter(c => c.ultimaRespuestaClienteEn && new Date(c.ultimaRespuestaClienteEn) > hace5min)
-        .map(c => c.id)
-      );
+      });
+      
       setMensajesNuevos(nuevos);
     } catch (e) {
       // Ignorar errores de red/JSON durante recargas del servidor
@@ -94,8 +104,12 @@ export default function ChatPage() {
   const handleSeleccionarChat = (contacto: Contacto) => {
     setChatActivo(contacto);
     chatActivoRef.current = contacto;
-    // Limpiar punto de notificación al abrir el chat
-    setMensajesNuevos(prev => { const s = new Set(prev); s.delete(contacto.id); return s; });
+    // Quitar punto de notificación
+    setMensajesNuevos(prev => { 
+      const s = new Set(prev); 
+      s.delete(contacto.id); 
+      return s; 
+    });
     if (!contacto.id.startsWith('temp-')) {
       fetchMensajes(contacto.id);
     } else {
