@@ -182,10 +182,10 @@ export default function ChatPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/plantillas"
-              className="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded transition"
+              className="text-xs font-medium text-gray-500 hover:text-emerald-700 bg-white border border-gray-200 hover:border-emerald-200 hover:bg-emerald-50 px-3 py-1.5 rounded-full transition-all duration-200 shadow-sm"
               title="Gestionar plantillas"
             >
-              📋 Plantillas
+              Gestionar Plantillas
             </Link>
             <button 
               onClick={() => setMostrandoNuevoChat(!mostrandoNuevoChat)}
@@ -199,18 +199,24 @@ export default function ChatPage() {
 
         {mostrandoNuevoChat && (
           <form onSubmit={iniciarNuevoChat} className="p-4 bg-gray-100 border-b border-gray-300 flex flex-col gap-3">
-            <input 
-              type="text" 
-              placeholder="52..."
-              value={nuevoTelefono}
-              onChange={(e) => setNuevoTelefono(e.target.value)}
-              className="px-3 py-1 text-sm rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-            <select 
-              value={plantillaSeleccionada}
-              onChange={(e) => setPlantillaSeleccionada(e.target.value)}
-              className="px-3 py-1 text-sm rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            >
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Número de destino</label>
+              <input 
+                type="text" 
+                placeholder="Ej: 521..."
+                value={nuevoTelefono}
+                onChange={(e) => setNuevoTelefono(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm bg-white rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 shadow-sm"
+              />
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Plantilla</label>
+              <select 
+                value={plantillaSeleccionada}
+                onChange={(e) => setPlantillaSeleccionada(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm bg-white rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 shadow-sm appearance-none cursor-pointer"
+              >
               {plantillas.length === 0 ? (
                 <option disabled value="">Sin plantillas — ve a 📋 Plantillas</option>
               ) : (
@@ -218,7 +224,8 @@ export default function ChatPage() {
                   <option key={p.id} value={p.nombre}>{p.etiqueta}</option>
                 ))
               )}
-            </select>
+              </select>
+            </div>
             {/* Hint dinámico basado en la plantilla seleccionada */}
             {(() => {
               const p = plantillas.find(pl => pl.nombre === plantillaSeleccionada);
@@ -237,16 +244,21 @@ export default function ChatPage() {
                 </div>
               );
             })()}
-            <input 
-              type="text" 
-              placeholder="Variables (nombre, financiera)"
-              title="Valores separados por coma para {{1}}, {{2}}, etc."
-              value={variablesPlantilla}
-              onChange={(e) => setVariablesPlantilla(e.target.value)}
-              className="px-3 py-1 text-sm rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-            <button type="submit" disabled={loading} className="bg-emerald-600 text-white px-3 py-1 rounded text-sm hover:bg-emerald-700 disabled:opacity-50">
-              Enviar Plantilla y Abrir Chat
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Variables</label>
+              <input 
+                type="text" 
+                placeholder="Juan, Mi Financiera..."
+                title="Valores separados por coma para {{1}}, {{2}}, etc."
+                value={variablesPlantilla}
+                onChange={(e) => setVariablesPlantilla(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm bg-white rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all duration-200 shadow-sm"
+              />
+            </div>
+
+            <button type="submit" disabled={loading} className="mt-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100 shadow-sm flex justify-center items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+              Enviar Plantilla
             </button>
           </form>
         )}
@@ -298,8 +310,8 @@ export default function ChatPage() {
                 <input
                   type="text"
                   placeholder={ventana24hAbierta() ? 'Escribe un mensaje...' : 'Bloqueado — Usa plantillas para iniciar'}
-                  className={`flex-1 rounded-lg px-4 py-2 border-none focus:ring-2 focus:ring-emerald-500 outline-none ${
-                    !ventana24hAbierta() ? 'bg-gray-200 cursor-not-allowed text-gray-400' : ''
+                  className={`flex-1 rounded-2xl px-5 py-3 border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all duration-200 shadow-sm text-gray-700 ${
+                    !ventana24hAbierta() ? 'bg-gray-100 cursor-not-allowed text-gray-400 border-gray-200' : 'bg-white'
                   }`}
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
@@ -309,9 +321,9 @@ export default function ChatPage() {
                 <button
                   onClick={enviarMensaje}
                   disabled={loading || !ventana24hAbierta()}
-                  className="bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-medium shadow-sm hover:bg-emerald-700 hover:shadow active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center"
                 >
-                  Enviar
+                  <svg className="w-5 h-5 ml-1 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 </button>
               </div>
             </div>
