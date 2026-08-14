@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Plantilla {
+  id        String   @id @default(uuid())
+  nombre    String   @unique  // Nombre exacto en Meta (ej: recordatorio_pago)
+  etiqueta  String            // Nombre amigable para mostrar en la UI
+  contenido String            // Texto con {{1}}, {{2}}, etc.
+  idioma    String   @default("es") // Código de idioma (es, en_US, es_MX, etc.)
+  createdAt DateTime @default(now())
+}
+
+model Contacto {
+  id                       String    @id @default(uuid())
+  telefono                 String    @unique
+  nombre                   String?
+  ultimoMensajeAt          DateTime? @default(now())
+  ultimaRespuestaClienteEn DateTime? // Cuándo respondió el cliente por última vez
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  
+  mensajes                 Mensaje[]
+}
+
+model Mensaje {
+  id         String   @id @default(uuid())
+  wamId      String?  @unique
+  texto      String
+  tipo       String   @default("text")
+  origen     String   // 'CLIENTE' o 'SISTEMA'
+  estado     String   // 'RECIBIDO', 'ENVIADO', 'LEIDO'
+  creadoEn   DateTime @default(now())
+  
+  contacto   Contacto @relation(fields: [contactoId], references: [id], onDelete: Cascade)
+  contactoId String
+}
