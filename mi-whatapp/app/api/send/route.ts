@@ -16,9 +16,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
     }
 
+    // Normalizar teléfono para consistencia con webhook (solo dígitos)
+    const telefonoNormalized = String(telefono).replace(/\D/g, '');
+
     // Verificar ventana de 24h de WhatsApp si es un mensaje de texto libre
     if (type === 'text') {
-      const contactoExistente = await prisma.contacto.findUnique({ where: { telefono } });
+      const contactoExistente = await prisma.contacto.findUnique({ where: { telefono: telefonoNormalized } });
       const ahora = new Date();
       const ventanaAbierta =
         contactoExistente?.ultimaRespuestaClienteEn &&
@@ -34,7 +37,7 @@ export async function POST(request: Request) {
 
     let bodyPayload: any = {
       messaging_product: 'whatsapp',
-      to: telefono,
+      to: telefonoNormalized,
     };
 
     if (type === 'template') {
@@ -80,11 +83,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: data }, { status: response.status });
     }
 
-    // 2. Buscar o crear al contacto en la BD
+    // 2. Buscar o crear al contacto en la BD (usar teléfono normalizado)
     const contacto = await prisma.contacto.upsert({
-      where: { telefono: telefono },
+      where: { telefono: telefonoNormalized },
       update: { ultimoMensajeAt: new Date() },
-      create: { telefono: telefono, nombre: telefono },
+      create: { telefono: telefonoNormalized, nombre: telefonoNormalized },
     });
 
     // 3. Guardar el mensaje enviado en la BD con el contenido renderizado

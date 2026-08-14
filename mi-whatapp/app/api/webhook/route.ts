@@ -17,6 +17,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    // Log minimal info to help debugging de webhooks en producción
+    console.log('Webhook body received');
+
     if (body.object === 'whatsapp_business_account') {
       const entry = body.entry?.[0];
       const changes = entry?.changes?.[0];
@@ -26,10 +29,14 @@ export async function POST(request: Request) {
       if (value?.messages?.[0]) {
         const message = value.messages[0];
         const contact = value.contacts?.[0];
-        const telefono = message.from;
+        // Normalizar teléfono: mantener solo dígitos para coincidir con la UI
+        const rawTelefono = message.from;
+        const telefono = String(rawTelefono || '').replace(/\D/g, '');
         const nombrePerfil = contact?.profile?.name || 'Desconocido';
         const texto = message.text?.body || '';
         const wamId = message.id;
+
+        console.log('Incoming message from', telefono, 'text length', texto?.length || 0);
 
         // 1. Guardar o actualizar el contacto, marcando la última respuesta del cliente
         const contactoDb = await prisma.contacto.upsert({
