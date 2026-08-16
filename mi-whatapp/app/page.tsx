@@ -108,7 +108,7 @@ export default function ChatPage() {
           }
           const activo = chatActivoRef.current;
           // Si el mensaje es para el chat que estamos viendo, refrescamos sus mensajes
-          if (activo && payload.new && payload.new.contactoId === activo.id) {
+          if (activo && payload.new && (payload.new as any).contactoId === activo.id) {
             fetchMensajes(activo.id);
           }
         }
