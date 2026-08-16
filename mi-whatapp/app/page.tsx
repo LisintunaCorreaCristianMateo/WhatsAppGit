@@ -100,13 +100,14 @@ export default function ChatPage() {
     const channel = supabase.channel('realtime-mensajes')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'Mensaje' },
+        { event: '*', schema: 'public', table: 'Mensaje' },
         (payload) => {
-          // Cuando llega un mensaje nuevo en la base de datos, refrescamos los datos
-          fetchContactos();
+          // Cuando llega un mensaje nuevo o se actualiza uno en la base de datos
+          if (payload.eventType === 'INSERT') {
+            fetchContactos();
+          }
           const activo = chatActivoRef.current;
           // Si el mensaje es para el chat que estamos viendo, refrescamos sus mensajes
-          // payload.new contiene los datos de la fila insertada
           if (activo && payload.new && payload.new.contactoId === activo.id) {
             fetchMensajes(activo.id);
           }
