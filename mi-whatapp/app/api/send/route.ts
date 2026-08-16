@@ -17,7 +17,10 @@ export async function POST(request: Request) {
     }
 
     // Normalizar teléfono para consistencia con webhook (solo dígitos)
-    const telefonoNormalized = String(telefono).replace(/\D/g, '');
+    let telefonoNormalized = String(telefono).replace(/\D/g, '');
+    if (telefonoNormalized.startsWith('521') && telefonoNormalized.length === 13) {
+      telefonoNormalized = '52' + telefonoNormalized.substring(3);
+    }
 
     // Verificar ventana de 24h de WhatsApp si es un mensaje de texto libre
     if (type === 'text') {

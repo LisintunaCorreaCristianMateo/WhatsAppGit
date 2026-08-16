@@ -31,7 +31,11 @@ export async function POST(request: Request) {
         const contact = value.contacts?.[0];
         // Normalizar teléfono: mantener solo dígitos para coincidir con la UI
         const rawTelefono = message.from;
-        const telefono = String(rawTelefono || '').replace(/\D/g, '');
+        let telefono = String(rawTelefono || '').replace(/\D/g, '');
+        // Normalizar números de México: si empieza por 521 y tiene 13 dígitos, quitar el 1
+        if (telefono.startsWith('521') && telefono.length === 13) {
+          telefono = '52' + telefono.substring(3);
+        }
         const nombrePerfil = contact?.profile?.name || 'Desconocido';
         const texto = message.text?.body || '';
         const wamId = message.id;
@@ -58,7 +62,21 @@ export async function POST(request: Request) {
         });
       }
 
-      // TODO: Aquí podrías manejar los "statuses" (leído, entregado) si Meta los envía
+      // Manejar los cambios de estado (entregado, leído)
+      if (value?.statuses?.[0]) {
+        const statusObj = value.statuses[0];
+        const wamId = statusObj.id;
+        const newStatus = statusObj.status; // 'sent', 'delivered', 'read'
+        
+        let mappedStatus = 'ENVIADO';
+        if (newStatus === 'delivered') mappedStatus = 'ENTREGADO';
+        if (newStatus === 'read') mappedStatus = 'LEIDO';
+
+        await prisma.mensaje.updateMany({
+          where: { wamId: wamId },
+          data: { estado: mappedStatus },
+        });
+      }
 
       return NextResponse.json({ status: 'ok' }, { status: 200 });
     }
