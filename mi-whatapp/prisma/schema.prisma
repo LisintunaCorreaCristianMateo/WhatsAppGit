@@ -45,3 +45,13 @@ model Mensaje {
   contacto   Contacto @relation(fields: [contactoId], references: [id], onDelete: Cascade)
   contactoId String
 }
+
+model Usuario {
+  id         String   @id @default(uuid())
+  nombre     String
+  usuario    String   @unique
+  contrasena String   @map("contraseña")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("usuario")
+}
